@@ -69,11 +69,11 @@ public class LSPApplication {
         var context = createLoadedApkWithContext();
 
         if (isIsolated()) {
-			XLog.d(TAG, "Skip isolated process");
+            XLog.d(TAG, "Skip isolated process");
             return;
         } else if (context == null) {
             XLog.e(TAG, "Error when creating context");
-		}
+        }
 
         Log.d(TAG, "Initialize service client");
         ILSPApplicationService service;
