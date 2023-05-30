@@ -1,6 +1,7 @@
 package org.lsposed.lspatch.metaloader;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityThread;
 import android.app.AppComponentFactory;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
@@ -12,6 +13,8 @@ import android.util.Log;
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import org.lsposed.lspatch.share.Constants;
 
+import dalvik.system.PathClassLoader;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +22,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.lang.ClassLoader;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -91,7 +96,11 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
                 soPath = cl.getResource("assets/lspatch/so/" + libName + "/liblspatch.so").getPath().substring(5);
             }
 
-            System.load(soPath);
+            if (ActivityThread.currentActivityThread() != null) {
+                System.load(soPath);
+            } else {
+                Log.d(TAG, "Skip loading liblspatch.so for AppZygoteInit");
+            }
         } catch (Throwable e) {
             throw new ExceptionInInitializerError(e);
         }
@@ -102,6 +111,17 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
         int n;
         while (-1 != (n = is.read(buffer))) {
             os.write(buffer, 0, n);
+        }
+    }
+
+    @Override
+    public ClassLoader instantiateClassLoader(ClassLoader cl, ApplicationInfo appInfo) {
+        var originalApkPath = Paths.get(appInfo.sourceDir).getParent().toString() + "/lib/arm64/lib_original_apk.so";
+        if (ActivityThread.currentActivityThread() != null) {
+            return cl;
+        } else {
+            Log.d(TAG, "Change classLoder for AppZygoteInit");
+            return new PathClassLoader(originalApkPath + ":" + appInfo.sourceDir, cl);
         }
     }
 }
