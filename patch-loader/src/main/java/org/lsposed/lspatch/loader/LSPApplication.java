@@ -65,13 +65,12 @@ public class LSPApplication {
     }
 
     public static void onLoad() throws RemoteException, IOException {
+        activityThread = ActivityThread.currentActivityThread();
+        var context = createLoadedApkWithContext();
         if (isIsolated()) {
             XLog.d(TAG, "Skip isolated process");
             return;
-        }
-        activityThread = ActivityThread.currentActivityThread();
-        var context = createLoadedApkWithContext();
-        if (context == null) {
+        } else if (context == null) {
             XLog.e(TAG, "Error when creating context");
             return;
         }
@@ -119,24 +118,17 @@ public class LSPApplication {
             Log.i(TAG, "Use manager: " + config.useManager);
             Log.i(TAG, "Signature bypass level: " + config.sigBypassLevel);
 
-            Path originPath = Paths.get(appInfo.dataDir, "cache/lspatch/origin/");
-            Path cacheApkPath;
-            try (ZipFile sourceFile = new ZipFile(appInfo.sourceDir)) {
-                cacheApkPath = originPath.resolve(sourceFile.getEntry(ORIGINAL_APK_ASSET_PATH).getCrc() + ".apk");
+            var originalApkPath = Paths.get(appInfo.sourceDir).getParent().toString() + "/lib/arm64/lib_original_apk.so";
+            
+            if (Files.exists(Paths.get(originalApkPath))) {
+                Log.i(TAG, "originalApkPath exists");
+            } else {
+                Log.e(TAG, originalApkPath + " not found");
             }
 
-            appInfo.sourceDir = cacheApkPath.toString();
-            appInfo.publicSourceDir = cacheApkPath.toString();
+            appInfo.sourceDir = originalApkPath;
+            appInfo.publicSourceDir = originalApkPath;
             appInfo.appComponentFactory = config.appComponentFactory;
-
-            if (!Files.exists(cacheApkPath)) {
-                Log.i(TAG, "Extract original apk");
-                FileUtils.deleteFolderIfExists(originPath);
-                Files.createDirectories(originPath);
-                try (InputStream is = baseClassLoader.getResourceAsStream(ORIGINAL_APK_ASSET_PATH)) {
-                    Files.copy(is, cacheApkPath);
-                }
-            }
 
             var mPackages = (Map<?, ?>) XposedHelpers.getObjectField(activityThread, "mPackages");
             mPackages.remove(appInfo.packageName);
@@ -164,15 +156,17 @@ public class LSPApplication {
             }
             Log.i(TAG, "hooked app initialized: " + appLoadedApk);
 
-            var context = (Context) XposedHelpers.callStaticMethod(Class.forName("android.app.ContextImpl"), "createAppContext", activityThread, stubLoadedApk);
             if (config.appComponentFactory != null) {
                 try {
-                    context.getClassLoader().loadClass(config.appComponentFactory);
+                    var appContext = (Context) XposedHelpers.callStaticMethod(Class.forName("android.app.ContextImpl"), "createAppContext", activityThread, appLoadedApk);
+                    appContext.getClassLoader().loadClass(config.appComponentFactory);
                 } catch (ClassNotFoundException e) { // This will happen on some strange shells like 360
-                    Log.w(TAG, "Original AppComponentFactory not found: " + config.appComponentFactory);
+                    Log.w(TAG, "Original AppComponentFactory not found: " + config.appComponentFactory, e);
                     appInfo.appComponentFactory = null;
                 }
             }
+
+            var context = (Context) XposedHelpers.callStaticMethod(Class.forName("android.app.ContextImpl"), "createAppContext", activityThread, stubLoadedApk);
             return context;
         } catch (Throwable e) {
             Log.e(TAG, "createLoadedApk", e);
