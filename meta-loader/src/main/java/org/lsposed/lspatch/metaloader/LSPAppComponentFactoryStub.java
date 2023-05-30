@@ -1,8 +1,8 @@
 package org.lsposed.lspatch.metaloader;
 
 import android.annotation.SuppressLint;
-import android.app.AppComponentFactory;
 import android.app.ActivityThread;
+import android.app.AppComponentFactory;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Build;
@@ -13,6 +13,8 @@ import android.util.Log;
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import org.lsposed.lspatch.share.Constants;
 
+import dalvik.system.PathClassLoader;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +22,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.lang.ClassLoader;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -92,11 +95,11 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
                 }
                 soPath = cl.getResource("assets/lspatch/so/" + libName + "/liblspatch.so").getPath().substring(5);
             }
+
             if (ActivityThread.currentActivityThread() != null) {
-                Log.d(TAG, "LSPAppComponentFactoryStub for process: " + ActivityThread.currentProcessName());
                 System.load(soPath);
             } else {
-                Log.d(TAG, "ActivityThread.currentActivityThread is null, dumping stack trace\n" + Arrays.toString(Thread.currentThread().getStackTrace()).replace( ',', '\n' ));
+                Log.d(TAG, "Skip loading liblspatch.so for AppZygoteInit");
             }
         } catch (Throwable e) {
             throw new ExceptionInInitializerError(e);
@@ -108,6 +111,28 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
         int n;
         while (-1 != (n = is.read(buffer))) {
             os.write(buffer, 0, n);
+        }
+    }
+
+    @Override
+    public ClassLoader instantiateClassLoader(ClassLoader cl, ApplicationInfo appInfo) {
+        var originalApkPath = Paths.get(appInfo.sourceDir).getParent().toString() + "/split_original.apk";
+        var appClassLoader = new PathClassLoader(originalApkPath, cl);
+        if (ActivityThread.currentActivityThread() != null) {
+            return cl;
+        } else {
+            try {
+                Log.d(TAG, "Calling original ZygotePreload");
+                appInfo.sourceDir = originalApkPath;
+				String zygotePreloadName = (String) ApplicationInfo.class.getDeclaredField("zygotePreloadName").get(appInfo);
+                Class<?> originalPreload = cl.loadClass(zygotePreloadName);
+                Method originalDoPreload = originalPreload.getDeclaredMethod("doPreload", ApplicationInfo.class);
+                originalDoPreload.invoke(originalPreload.getDeclaredConstructor().newInstance(), appInfo);
+				cl.loadClass(zygotePreloadName + "Mock");
+            } catch (Throwable e) {
+                Log.e(TAG, "Dump ClassLoader: " + e.getMessage());
+            }
+            return null;
         }
     }
 }
