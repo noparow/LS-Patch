@@ -15,24 +15,20 @@ object ManagerService : ILSPApplicationService.Stub() {
 
     private const val TAG = "ManagerService"
 
-    override fun requestModuleBinder(name: String): IBinder {
-        TODO("Not yet implemented")
-    }
-
-    override fun getModulesList(): List<Module> {
+    override fun getLegacyModulesList(): List<Module> {
         val app = lspApp.packageManager.getNameForUid(Binder.getCallingUid())
         val list = app?.let {
             runBlocking { ConfigManager.getModuleFilesForApp(it) }
         }.orEmpty()
-        Log.d(TAG, "$app calls getModulesList: $list")
+        Log.d(TAG, "$app calls getLegacyModulesList: $list")
         return list
     }
 
-    override fun getPrefsPath(packageName: String): String {
-        TODO("Not yet implemented")
+    override fun getModulesList(): List<Module> {
+        return emptyList()
     }
 
-    override fun requestRemotePreference(packageName: String, userId: Int, callback: IBinder?): Bundle {
+    override fun getPrefsPath(packageName: String): String {
         TODO("Not yet implemented")
     }
 

@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -35,7 +34,7 @@ public class RemoteApplicationService implements ILSPApplicationService {
     private static final String TAG = "LSPatch";
     private static final String MODULE_SERVICE = Constants.MANAGER_PACKAGE_NAME + ".manager.ModuleService";
 
-    private ILSPApplicationService service;
+    private volatile ILSPApplicationService service;
 
     @SuppressLint("DiscouragedPrivateApi")
     public RemoteApplicationService(Context context) throws RemoteException {
@@ -49,8 +48,8 @@ public class RemoteApplicationService implements ILSPApplicationService {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder binder) {
                     Log.i(TAG, "Manager binder received");
-                    latch.countDown();
                     service = Stub.asInterface(binder);
+                    latch.countDown();
                 }
 
                 @Override
@@ -75,7 +74,8 @@ public class RemoteApplicationService implements ILSPApplicationService {
             }
             boolean success = latch.await(1, TimeUnit.SECONDS);
             if (!success) throw new TimeoutException("Bind service timeout");
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | InterruptedException | TimeoutException e) {
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |
+                 InterruptedException | TimeoutException e) {
             Toast.makeText(context, "Manager died", Toast.LENGTH_SHORT).show();
             var r = new RemoteException("Failed to get manager binder");
             r.initCause(e);
@@ -84,8 +84,8 @@ public class RemoteApplicationService implements ILSPApplicationService {
     }
 
     @Override
-    public IBinder requestModuleBinder(String name) {
-        return service == null ? null : service.asBinder();
+    public List<Module> getLegacyModulesList() throws RemoteException {
+        return service == null ? new ArrayList<>() : service.getLegacyModulesList();
     }
 
     @Override
@@ -96,11 +96,6 @@ public class RemoteApplicationService implements ILSPApplicationService {
     @Override
     public String getPrefsPath(String packageName) {
         return new File(Environment.getDataDirectory(), "data/" + packageName + "/shared_prefs/").getAbsolutePath();
-    }
-
-    @Override
-    public Bundle requestRemotePreference(String packageName, int userId, IBinder callback) throws RemoteException {
-        return service == null ? null : service.requestRemotePreference(packageName, userId, callback);
     }
 
     @Override

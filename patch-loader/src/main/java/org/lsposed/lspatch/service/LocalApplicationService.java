@@ -1,10 +1,10 @@
 package org.lsposed.lspatch.service;
 
 import android.content.Context;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
 import android.util.Log;
 
 import org.lsposed.lspatch.loader.util.FileUtils;
@@ -58,13 +58,13 @@ public class LocalApplicationService extends ILSPApplicationService.Stub {
     }
 
     @Override
-    public IBinder requestModuleBinder(String name) {
-        return null;
+    public List<Module> getLegacyModulesList() {
+        return modules;
     }
 
     @Override
     public List<Module> getModulesList() {
-        return modules;
+        return new ArrayList<>();
     }
 
     @Override
@@ -73,12 +73,12 @@ public class LocalApplicationService extends ILSPApplicationService.Stub {
     }
 
     @Override
-    public Bundle requestRemotePreference(String packageName, int userId, IBinder callback) {
+    public ParcelFileDescriptor requestInjectedManagerBinder(List<IBinder> binder) {
         return null;
     }
 
     @Override
-    public ParcelFileDescriptor requestInjectedManagerBinder(List<IBinder> binder) {
-        return null;
+    public IBinder asBinder() {
+        return this;
     }
 }
