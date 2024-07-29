@@ -95,10 +95,10 @@ namespace lspd {
         lsplant::InitInfo initInfo {
                 .inline_hooker = [](auto t, auto r) {
                     void* bk = nullptr;
-                    return HookFunction(t, r, &bk) == RS_SUCCESS ? bk : nullptr;
+                    return HookFunction(t, r, &bk) == 0 ? bk : nullptr;
                 },
                 .inline_unhooker = [](auto t) {
-                    return UnhookFunction(t) == RT_SUCCESS;
+                    return UnhookFunction(t) == 0;
                 },
                 .art_symbol_resolver = [](auto symbol) {
                     return GetArt()->getSymbAddress<void*>(symbol);
