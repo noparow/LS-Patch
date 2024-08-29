@@ -340,7 +340,7 @@ public class LSPatch {
         ModificationProperty property = new ModificationProperty();
 
         if (overrideVersionCode)
-            property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.VERSION_CODE, 1));
+            property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.VERSION_CODE, 2147483647));
         if (minSdkVersion < 28)
             property.addUsesSdkAttribute(new AttributeItem(NodeValue.UsesSDK.MIN_SDK_VERSION, 28));
         property.addApplicationAttribute(new AttributeItem(NodeValue.Application.DEBUGGABLE, debuggableFlag));
