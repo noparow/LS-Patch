@@ -85,10 +85,10 @@ public class LSPatch {
     @Parameter(names = {"--manager"}, description = "Use manager (Cannot work with embedding modules)")
     private boolean useManager = false;
 
-    @Parameter(names = {"-r", "--allowdown"}, description = "Allow downgrade installation by overriding versionCode to 1 (In most cases, the app can still get the correct versionCode)")
+    @Parameter(names = {"-r", "--allowdown"}, description = "Allow downgrade installation by overriding versionCode to the value that be supply by -c (In most cases, the app can still get the correct versionCode)")
     private boolean overrideVersionCode = false;
 
-    @Parameter(names = {"-c", "--customvercode"}, description = "Custom Version Code")
+    @Parameter(names = {"-c", "--customvc"}, description = "Custom Version Code")
     private int customVerCode = 2147483647;
 
     @Parameter(names = {"-v", "--verbose"}, description = "Verbose output")
