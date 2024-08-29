@@ -88,6 +88,9 @@ public class LSPatch {
     @Parameter(names = {"-r", "--allowdown"}, description = "Allow downgrade installation by overriding versionCode to 1 (In most cases, the app can still get the correct versionCode)")
     private boolean overrideVersionCode = false;
 
+    @Parameter(names = {"-c", "--customvercode"}, description = "Custom Version Code")
+    private int customVerCode = 2147483647;
+
     @Parameter(names = {"-v", "--verbose"}, description = "Verbose output")
     private boolean verbose = false;
 
@@ -340,7 +343,7 @@ public class LSPatch {
         ModificationProperty property = new ModificationProperty();
 
         if (overrideVersionCode)
-            property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.VERSION_CODE, 2147483647));
+            property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.VERSION_CODE, customVerCode));
         if (minSdkVersion < 28)
             property.addUsesSdkAttribute(new AttributeItem(NodeValue.UsesSDK.MIN_SDK_VERSION, 28));
         property.addApplicationAttribute(new AttributeItem(NodeValue.Application.DEBUGGABLE, debuggableFlag));
